@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test'
 
 import { generateOrderCode } from '../support/helpers'
 
+import { OrderLockupPage } from '../support/pages/OrderLockupPage';
+
 /// AAA - Arrange, Act, Assert
 
 test.describe('Consulta de Pedido', () => {
@@ -31,24 +33,26 @@ test.describe('Consulta de Pedido', () => {
                 name: 'Leonardo Cunha',
                 email: 'leoc.ribeiro222@hotmail.com'
             },
-                payment: 'À Vista',
-            }
-        
+            payment: 'À Vista',
+        }
+
 
         // Act
-        await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order.number)
 
-        await page.getByRole('button', { name: 'Buscar Pedido' }).click()
+        const orderLockupPage = new OrderLockupPage(page)
+
+        await orderLockupPage.searchOrder(order.number)
 
 
         // Assert
-       
-       await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
+
+        await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
          - img
          - paragraph: Pedido
          - paragraph: ${order.number}
-         - img
-         - text: ${order.status}
+         - status:
+           - img
+           - text: ${order.status}
          - img "Velô Sprint"
          - paragraph: Modelo
          - paragraph: Velô Sprint
@@ -71,9 +75,17 @@ test.describe('Consulta de Pedido', () => {
          - paragraph: ${order.payment}
          - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
          `);
-     });
 
-     test('deve consultar um pedido reprovado', async ({ page }) => {
+        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
+        await expect(statusBadge).toHaveClass(/bg-green-100/)
+        await expect(statusBadge).toHaveClass(/text-green-700/)
+
+        const statusIcon = statusBadge.locator('svg')
+        await expect(statusIcon).toHaveClass(/lucide-circle-check-big/)
+
+    });
+
+    test('deve consultar um pedido reprovado', async ({ page }) => {
 
         // Test Data
 
@@ -88,24 +100,24 @@ test.describe('Consulta de Pedido', () => {
                 name: 'Steve Jobs',
                 email: 'stevejobs@iphone.com'
             },
-                payment: 'À Vista',
-            }
-        
+            payment: 'À Vista',
+        }
+
 
         // Act
-        await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order.number)
+        const orderLockupPage = new OrderLockupPage(page)
 
-        await page.getByRole('button', { name: 'Buscar Pedido' }).click()
-
+        await orderLockupPage.searchOrder(order.number)
 
         // Assert
-       
-       await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
+
+        await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
          - img
          - paragraph: Pedido
          - paragraph: ${order.number}
-         - img
-         - text: ${order.status}
+         - status:
+           - img
+           - text: ${order.status}
          - img "Velô Sprint"
          - paragraph: Modelo
          - paragraph: Velô Sprint
@@ -128,14 +140,87 @@ test.describe('Consulta de Pedido', () => {
          - paragraph: ${order.payment}
          - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
          `);
-     });
+
+        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
+        await expect(statusBadge).toHaveClass(/bg-red-100/)
+        await expect(statusBadge).toHaveClass(/text-red-700/)
+
+        const statusIcon = statusBadge.locator('svg')
+        await expect(statusIcon).toHaveClass(/lucide lucide-circle-x/)
+
+    });
+
+    test('deve consultar um pedido em analise', async ({ page }) => {
+
+        // Test Data
+
+        // const order = 'VLO-ID6LIY'
+
+        const order = {
+            number: 'VLO-JNAO5B',
+            color: 'Lunar White',
+            wheels: 'aero Wheels',
+            status: 'EM_ANALISE',
+            customer: {
+                name: 'Leo Leo Ribeiro',
+                email: 'leoleo@ribeiro.com'
+            },
+            payment: 'À Vista',
+        }
+
+
+        // Act
+        const orderLockupPage = new OrderLockupPage(page)
+
+        await orderLockupPage.searchOrder(order.number)
+
+
+        // Assert
+
+        await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
+         - img
+         - paragraph: Pedido
+         - paragraph: ${order.number}
+         - status:
+           - img
+           - text: ${order.status}
+         - img "Velô Sprint"
+         - paragraph: Modelo
+         - paragraph: Velô Sprint
+         - paragraph: Cor
+         - paragraph: ${order.color}
+         - paragraph: Interior
+         - paragraph: cream
+         - paragraph: Rodas
+         - paragraph: ${order.wheels}
+         - heading "Dados do Cliente" [level=4]
+         - paragraph: Nome
+         - paragraph: ${order.customer.name}
+         - paragraph: Email
+         - paragraph: ${order.customer.email}
+         - paragraph: Loja de Retirada
+         - paragraph
+         - paragraph: Data do Pedido
+         - paragraph: /\\d+\\/\\d+\\/\\d+/
+         - heading "Pagamento" [level=4]
+         - paragraph: ${order.payment}
+         - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
+         `);
+        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
+        await expect(statusBadge).toHaveClass(/bg-amber-100/)
+        await expect(statusBadge).toHaveClass(/text-amber-700/)
+
+        const statusIcon = statusBadge.locator('svg')
+        await expect(statusIcon).toHaveClass(/lucide-clock/)
+    });
 
     test('deve exibir mensagem quando o pedido não é encontrado', async ({ page }) => {
 
         const order = generateOrderCode()
 
-        await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(order)
-        await page.getByRole('button', { name: 'Buscar Pedido' }).click()
+        const orderLockupPage = new OrderLockupPage(page)
+
+        await orderLockupPage.searchOrder(order)
 
         await expect(page.locator('#root')).toMatchAriaSnapshot(`
             - img

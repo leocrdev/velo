@@ -15,3 +15,11 @@ export function generateOrderCode() {
   // Exemplo de uso
   const order = generateOrderCode();
   console.log(order); // Ex: VLO-6E2J20
+
+
+  import { Page } from '@playwright/test'
+
+  export async function searchOrder(page: Page, orderNumber: string) {
+    await page.getByRole('textbox', { name: 'Número do Pedido' }).fill(orderNumber)
+    await page.getByRole('button', { name: 'Buscar Pedido' }).click()
+  }
