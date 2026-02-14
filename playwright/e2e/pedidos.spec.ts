@@ -14,21 +14,18 @@ test.describe('Consulta de Pedido', () => {
         await expect(page.getByTestId('hero-section').getByRole('heading')).toContainText('Velô Sprint')
 
         await page.getByRole('link', { name: 'Consultar Pedido' }).click()
-        await expect(page.getByRole('heading')).toContainText('Consultar Pedido') // AAA - Arrange
+        await expect(page.getByRole('heading')).toContainText('Consultar Pedido')
     })
 
 
     test('deve consultar um pedido aprovado', async ({ page }) => {
 
         // Test Data
-
-        // const order = 'VLO-18DYA3'
-
         const order = {
             number: 'VLO-18DYA3',
             color: 'Lunar White',
             wheels: 'sport Wheels',
-            status: 'APROVADO',
+            status: 'APROVADO' as const,
             customer: {
                 name: 'Leonardo Cunha',
                 email: 'leoc.ribeiro222@hotmail.com'
@@ -36,16 +33,11 @@ test.describe('Consulta de Pedido', () => {
             payment: 'À Vista',
         }
 
-
         // Act
-
         const orderLockupPage = new OrderLockupPage(page)
-
         await orderLockupPage.searchOrder(order.number)
 
-
-        // Assert
-
+        // Assert - Validação da estrutura completa
         await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
          - img
          - paragraph: Pedido
@@ -76,26 +68,18 @@ test.describe('Consulta de Pedido', () => {
          - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
          `);
 
-        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
-        await expect(statusBadge).toHaveClass(/bg-green-100/)
-        await expect(statusBadge).toHaveClass(/text-green-700/)
-
-        const statusIcon = statusBadge.locator('svg')
-        await expect(statusIcon).toHaveClass(/lucide-circle-check-big/)
-
+        // Assert - Validação do badge de status (MÉTODO SIMPLIFICADO)
+        await orderLockupPage.validateStatusBadge(order.status)
     });
 
     test('deve consultar um pedido reprovado', async ({ page }) => {
 
         // Test Data
-
-        // const order = 'VLO-ID6LIY'
-
         const order = {
             number: 'VLO-ID6LIY',
             color: 'Midnight Black',
             wheels: 'sport Wheels',
-            status: 'REPROVADO',
+            status: 'REPROVADO' as const,
             customer: {
                 name: 'Steve Jobs',
                 email: 'stevejobs@iphone.com'
@@ -103,14 +87,11 @@ test.describe('Consulta de Pedido', () => {
             payment: 'À Vista',
         }
 
-
         // Act
         const orderLockupPage = new OrderLockupPage(page)
-
         await orderLockupPage.searchOrder(order.number)
 
-        // Assert
-
+        // Assert - Validação da estrutura completa
         await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
          - img
          - paragraph: Pedido
@@ -141,26 +122,18 @@ test.describe('Consulta de Pedido', () => {
          - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
          `);
 
-        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
-        await expect(statusBadge).toHaveClass(/bg-red-100/)
-        await expect(statusBadge).toHaveClass(/text-red-700/)
-
-        const statusIcon = statusBadge.locator('svg')
-        await expect(statusIcon).toHaveClass(/lucide lucide-circle-x/)
-
+        // Assert - Validação do badge de status (MÉTODO SIMPLIFICADO)
+        await orderLockupPage.validateStatusBadge(order.status)
     });
 
     test('deve consultar um pedido em analise', async ({ page }) => {
 
         // Test Data
-
-        // const order = 'VLO-ID6LIY'
-
         const order = {
             number: 'VLO-JNAO5B',
             color: 'Lunar White',
             wheels: 'aero Wheels',
-            status: 'EM_ANALISE',
+            status: 'EM_ANALISE' as const,
             customer: {
                 name: 'Leo Leo Ribeiro',
                 email: 'leoleo@ribeiro.com'
@@ -168,15 +141,11 @@ test.describe('Consulta de Pedido', () => {
             payment: 'À Vista',
         }
 
-
         // Act
         const orderLockupPage = new OrderLockupPage(page)
-
         await orderLockupPage.searchOrder(order.number)
 
-
-        // Assert
-
+        // Assert - Validação da estrutura completa
         await expect(page.getByTestId(`order-result-${order.number}`)).toMatchAriaSnapshot(`
          - img
          - paragraph: Pedido
@@ -206,12 +175,9 @@ test.describe('Consulta de Pedido', () => {
          - paragraph: ${order.payment}
          - paragraph: /R\\$ \\d+\\.\\d+,\\d+/
          `);
-        const statusBadge = page.getByRole('status').filter({ hasText: order.status })
-        await expect(statusBadge).toHaveClass(/bg-amber-100/)
-        await expect(statusBadge).toHaveClass(/text-amber-700/)
 
-        const statusIcon = statusBadge.locator('svg')
-        await expect(statusIcon).toHaveClass(/lucide-clock/)
+        // Assert - Validação do badge de status (MÉTODO SIMPLIFICADO)
+        await orderLockupPage.validateStatusBadge(order.status)
     });
 
     test('deve exibir mensagem quando o pedido não é encontrado', async ({ page }) => {
@@ -227,7 +193,5 @@ test.describe('Consulta de Pedido', () => {
             - heading "Pedido não encontrado" [level=3]
             - paragraph: Verifique o número do pedido e tente novamente
             `)
-
     })
 });
-
