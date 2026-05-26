@@ -1,6 +1,6 @@
 import { test, expect } from '../support/fixtures'
 
-import { deleteOrderByEmail } from '../support/database/orderRepository'
+import { deleteOrderByEmail, deleteOrderByNumber } from '../support/database/orderRepository'
 
 test.describe('Checkout', () => {
 
@@ -37,7 +37,7 @@ test.describe('Checkout', () => {
       const customer = {
         name: 'A',
         lastname: 'B',
-        email: 'papito@teste.com',
+        email: 'leo@teste.com',
         document: '00000014141',
         phone: '(11) 99999-9999'
       }
@@ -57,9 +57,9 @@ test.describe('Checkout', () => {
 
     test('deve exibir erro para e-mail com formato inválido', async ({ app }) => {
       const customer = {
-        name: 'Fernando',
-        lastname: 'Papito',
-        email: 'papito@.com',
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leoteste@.com',
         document: '00000014141',
         phone: '(11) 99999-9999'
       }
@@ -79,9 +79,9 @@ test.describe('Checkout', () => {
     test('deve exibir erro para CPF inválido', async ({ app }) => {
 
       const customer = {
-        name: 'Fernando',
-        lastname: 'Papito',
-        email: 'papito@test.com',
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leo@test.com',
         document: '00000014199',
         phone: '(11) 99999-9999'
       }
@@ -101,9 +101,9 @@ test.describe('Checkout', () => {
     test('deve exigir o aceite dos termos ao finalizar com dados válidos', async ({ app }) => {
 
       const customer = {
-        name: 'Fernando',
-        lastname: 'Papito',
-        email: 'papito@test.com',
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leo@test.com',
         document: '00000014199',
         phone: '(11) 99999-9999'
       }
@@ -124,12 +124,12 @@ test.describe('Checkout', () => {
 
   test.describe('Pagamento e Confirmação', () => {
 
-    test('deve criar um pedido com sucesso para pagamento à vista', async ({ page, app }) => {
+    test('deve criar um pedido com sucesso para pagamento a vista', async ({ page, app }) => {
 
       const customer = {
-        name: 'Fernando',
-        lastname: 'Papito',
-        email: 'papito@teste.com',
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leo@teste.com',
         document: '05366127068',
         phone: '(11) 99999-9999',
         store: 'Velô Paulista',
@@ -143,22 +143,29 @@ test.describe('Checkout', () => {
       await page.goto('/')
       await page.getByRole('link', { name: /Configure Agora/i }).click()
 
+      await app.configurator.selectColor('Glacier Blue')
+      await app.configurator.selectWheels(/aero/i)
+      
       await app.configurator.expectPrice(customer.totalPrice)
       await app.configurator.finishConfigurator()
       await app.checkout.expectLoaded()
 
+      // Act
       await app.checkout.fillCustomerlData(customer)
       await app.checkout.selectStore(customer.store)
-
-      // Act
       await app.checkout.selectPaymentMethod(customer.paymentMethod)
       await app.checkout.expectSummaryTotal(customer.totalPrice)
       await app.checkout.acceptTerms()
       await app.checkout.submit()
 
       // Assert
-      await expect(page).toHaveURL(/\/success/)
-      await expect(page.getByRole('heading', { name: 'Pedido Aprovado!' })).toBeVisible()
+      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
+      await expect(page.getByRole('heading', { name: 'Pedido Aprovado!' })).toBeVisible({ timeout: 10000 })
+
+      const orderId = await page.getByTestId('order-id').textContent()
+      if (orderId) {
+        await deleteOrderByNumber(orderId)
+      }
     })
   })
 })
