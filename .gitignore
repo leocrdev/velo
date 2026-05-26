@@ -29,3 +29,12 @@ dist-ssr
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+node_modules/
+.env
+.supabase/
+supabase/.temp/
+supabase/.branches/
+supabase/snippets/
+playwright-report/
+test-results/
