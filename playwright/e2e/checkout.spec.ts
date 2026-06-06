@@ -167,5 +167,80 @@ test.describe('Checkout', () => {
         await deleteOrderByNumber(orderId)
       }
     })
+
+    test('deve criar um pedido em análise para financiamento com score médio', async ({ page, app }) => {
+      const customer = {
+        name: 'Ana',
+        lastname: 'Silva',
+        email: 'ana.silva@teste.com',
+        document: '74428274033',
+        phone: '(11) 99999-9999',
+        store: 'Velô Paulista',
+        paymentMethod: 'Financiamento',
+        totalPrice: 'R$ 40.800,00'
+      }
+
+      await deleteOrderByEmail(customer.email)
+
+      // Mock credit analysis to return score in [501, 700] range
+      await page.route('**/functions/v1/credit-analysis', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ score: 600 })
+        })
+      })
+
+      // Arrange
+      await page.goto('/')
+      await page.getByRole('link', { name: /Configure Agora/i }).click()
+
+      await app.configurator.selectColor('Glacier Blue')
+      await app.configurator.selectWheels(/aero/i)
+      await app.configurator.finishConfigurator()
+      await app.checkout.expectLoaded()
+
+      // Act
+      await app.checkout.fillCustomerlData(customer)
+      await app.checkout.selectStore(customer.store)
+      await app.checkout.selectPaymentMethod(customer.paymentMethod)
+      await page.getByTestId('input-entry-value').fill('0')
+      await app.checkout.expectSummaryTotal(customer.totalPrice)
+      await app.checkout.acceptTerms()
+      await app.checkout.submit()
+
+      // Assert
+      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
+      await expect(page.getByRole('heading', { name: 'Pedido em Análise!' })).toBeVisible({ timeout: 10000 })
+
+      const orderId = await page.getByTestId('order-id').textContent()
+      expect(orderId).not.toBeNull()
+
+      // Go to lookup page to verify status "EM_ANALISE"
+      await page.getByTestId('goto-consultar').click()
+      await expect(page).toHaveURL(/\/lookup/, { timeout: 10000 })
+
+      if (orderId) {
+        await app.orderLookup.searchOrder(orderId)
+        await app.orderLookup.validateOrderDetails({
+          number: orderId,
+          status: 'EM_ANALISE',
+          color: 'Glacier Blue',
+          wheels: 'aero Wheels',
+          customer: {
+            name: `${customer.name} ${customer.lastname}`,
+            email: customer.email,
+            document: customer.document,
+            phone: customer.phone
+          },
+          payment: 'Financiamento 12x',
+          total_price: '40800'
+        })
+        await app.orderLookup.validateStatusBadge('EM_ANALISE')
+
+        // Cleanup
+        await deleteOrderByNumber(orderId)
+      }
+    })
   })
 })
