@@ -145,7 +145,7 @@ test.describe('Checkout', () => {
 
       await app.configurator.selectColor('Glacier Blue')
       await app.configurator.selectWheels(/aero/i)
-      
+
       await app.configurator.expectPrice(customer.totalPrice)
       await app.configurator.finishConfigurator()
       await app.checkout.expectLoaded()
@@ -239,6 +239,127 @@ test.describe('Checkout', () => {
         await app.orderLookup.validateStatusBadge('EM_ANALISE')
 
         // Cleanup
+        await deleteOrderByNumber(orderId)
+      }
+    })
+    test('deve reprovar financiamento com score baixo sem entrada', async ({ page, app }) => {
+
+      const customer = {
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leo-score-baixo-sem-entrada@teste.com',
+        document: '43804598021',
+        phone: '(11) 99999-9999',
+        store: 'Velô Paulista',
+        paymentMethod: 'Financiamento',
+        totalPrice: 'R$ 40.800,00'
+      }
+
+      await deleteOrderByEmail(customer.email)
+
+      // Mock credit analysis to return score <= 500
+      await page.route('**/functions/v1/credit-analysis', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ score: 500 })
+        })
+      })
+
+      // Arrange
+      await page.goto('/')
+      await page.getByRole('link', { name: /Configure Agora/i }).click()
+
+      await app.configurator.selectColor('Glacier Blue')
+      await app.configurator.selectWheels(/aero/i)
+
+      await app.configurator.finishConfigurator()
+      await app.checkout.expectLoaded()
+
+      // Act
+      await app.checkout.fillCustomerlData(customer)
+      await app.checkout.selectStore(customer.store)
+      await app.checkout.selectPaymentMethod(customer.paymentMethod)
+
+      // Sem entrada
+      await page.getByTestId('input-entry-value').fill('0')
+
+      await app.checkout.expectSummaryTotal(customer.totalPrice)
+      await app.checkout.acceptTerms()
+      await app.checkout.submit()
+
+      // Assert
+      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
+
+      await expect(
+        page.getByRole('heading', { name: 'Crédito Reprovado' })
+      ).toBeVisible({ timeout: 10000 })
+
+      const orderId = await page.getByTestId('order-id').textContent()
+
+      expect(orderId).not.toBeNull()
+
+      if (orderId) {
+        await deleteOrderByNumber(orderId)
+      }
+    })
+    test('deve reprovar financiamento com score baixo e entrada menor que 50%', async ({ page, app }) => {
+
+      const customer = {
+        name: 'Leo',
+        lastname: 'Ribeiro',
+        email: 'leo-score-baixo-entrada@teste.com',
+        document: '43804598021',
+        phone: '(11) 99999-9999',
+        store: 'Velô Paulista',
+        paymentMethod: 'Financiamento',
+        totalPrice: 'R$ 40.800,00',
+        downPayment: '10000'
+      }
+
+      await deleteOrderByEmail(customer.email)
+
+      // Mock credit analysis to return score <= 500
+      await page.route('**/functions/v1/credit-analysis', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ score: 500 })
+        })
+      })
+
+      // Arrange
+      await page.goto('/')
+      await page.getByRole('link', { name: /Configure Agora/i }).click()
+
+      await app.configurator.selectColor('Glacier Blue')
+      await app.configurator.selectWheels(/aero/i)
+
+      await app.configurator.finishConfigurator()
+      await app.checkout.expectLoaded()
+
+      // Act
+      await app.checkout.fillCustomerlData(customer)
+      await app.checkout.selectStore(customer.store)
+      await app.checkout.selectPaymentMethod(customer.paymentMethod)
+
+      // Entrada parcial (< 50%)
+      await app.checkout.fillDownPayment(customer.downPayment)
+      await app.checkout.acceptTerms()
+      await app.checkout.submit()
+
+      // Assert
+      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
+
+      await expect(
+        page.getByRole('heading', { name: 'Crédito Reprovado' })
+      ).toBeVisible({ timeout: 10000 })
+
+      const orderId = await page.getByTestId('order-id').textContent()
+
+      expect(orderId).not.toBeNull()
+
+      if (orderId) {
         await deleteOrderByNumber(orderId)
       }
     })
