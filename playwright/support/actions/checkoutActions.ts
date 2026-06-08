@@ -15,7 +15,7 @@ export function createCheckoutActions(page: Page) {
   }
 
 
-  return {
+  const actions = {
 
     elements: {
       terms,
@@ -64,5 +64,44 @@ export function createCheckoutActions(page: Page) {
     async submit() {
       await page.getByRole('button', { name: 'Confirmar Pedido' }).click()
     },
+
+    async mockCreditScore(score: number) {
+      await page.route('**/functions/v1/credit-analysis', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ score })
+        })
+      })
+    },
+
+    async fillAndSubmit(
+      customer: {
+        name: string
+        lastname: string
+        email: string
+        phone: string
+        document: string
+        store: string
+        paymentMethod: string
+      },
+      options?: { downPayment?: string; acceptTerms?: boolean; expectTotal?: string }
+    ) {
+      await actions.fillCustomerlData(customer)
+      await actions.selectStore(customer.store)
+      await actions.selectPaymentMethod(customer.paymentMethod)
+      if (options?.expectTotal) {
+        await actions.expectSummaryTotal(options.expectTotal)
+      }
+      if (options?.downPayment !== undefined) {
+        await actions.fillDownPayment(options.downPayment)
+      }
+      if (options?.acceptTerms !== false) {
+        await actions.acceptTerms()
+      }
+      await actions.submit()
+    }
   }
+
+  return actions
 }
