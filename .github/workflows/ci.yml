@@ -67,7 +67,7 @@ jobs:
         run: yarn vercel pull --yes --environment=preview --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
 
       - name: Build Vercel
-        run: yarn vercel build --token=$VERCEL_TOKE
+        run: yarn vercel build --token=$VERCEL_TOKEN
 
       - name: Deploy Vercel Preview
         id: deploy
