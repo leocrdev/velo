@@ -68,4 +68,4 @@ jobs:
         run: yarn vercel build --token=$VERCEL_TOKEN
 
       - name: Deploy Vercel Preview
-        run: yarn vercel deploy --prebuilt --target:preview --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
+        run: yarn vercel deploy --prebuilt --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
