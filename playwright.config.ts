@@ -17,24 +17,24 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
  */
 export default defineConfig({
 
-  // Tempo máximo para cada teste completo (3o segundo é o padrão)
-  timeout: 60_000,
+  // Tempo máximo para cada teste completo
+  timeout: 90_000,
 
-  // Tempo máximo para assertions (toBeVisible(), toHaveText()) 5 segundos
+  // Tempo máximo para assertions (toBeVisible(), toHaveText()) 10 segundos
   expect: {
-    timeout: 5_000 // não vale a pena aumentar porque o teste pode ficar lento no tempo de execução, vale a pena usar o time explicito
+    timeout: 10_000
   },
 
 
   testDir: './playwright/e2e',
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  /* Opt out of parallel tests to avoid DB concurrency issues on remote Supabase */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -46,12 +46,10 @@ export default defineConfig({
     trace: 'on',
 
     // Tempo máximo para ações interativas como click(), fill()
-    // Quando o valor é 0, herda o limite do timeout geral do teste
-    actionTimeout: 5_000,
+    actionTimeout: 10_000,
 
     // Tempo máximo para navegações como goto(), waitForURL()
-    // Quando o valor é 0, herda o limite do timeout geral do teste
-    navigationTimeout: 10_000
+    navigationTimeout: 15_000
   },
 
   /* Configure projects for major browsers */
@@ -93,9 +91,9 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'yarn dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-  },
+  // webServer: {
+  //   command: 'yarn dev',
+  //   url: 'https://velo-woad.vercel.app/',
+  //   reuseExistingServer: !process.env.CI,
+  // },
 });

@@ -1,4 +1,8 @@
+// @ts-ignore: O VS Code sem a extensão Deno não entende importações via URL
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+// Evita erro "Cannot find name 'Deno'" no VS Code sem a extensão do Deno instalada
+declare const Deno: any;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +48,7 @@ function buildExternalHeaders(): HeadersInit {
   };
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -95,26 +99,15 @@ serve(async (req) => {
     }
 
     // Valida resposta
-    const score =
-      typeof data === 'object' &&
-        data !== null &&
-        'score' in data &&
-        typeof data.score === 'number'
-        ? data.score
-        : null;
+    const dataObj = data as Record<string, any>;
+    const score = typeof dataObj?.score === 'number' ? dataObj.score : null;
 
     if (score === null) {
       console.error('Invalid response from credit API: missing score field');
       return createJsonResponse({ error: 'Resposta inválida da API de crédito' }, 502);
     }
 
-    const status =
-      typeof data === 'object' &&
-        data !== null &&
-        'status' in data &&
-        typeof data.status === 'string'
-        ? data.status
-        : 'Done';
+    const status = typeof dataObj?.status === 'string' ? dataObj.status : 'Done';
 
     console.log(`Credit analysis completed. Score: ${score}`);
 
