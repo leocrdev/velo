@@ -124,9 +124,9 @@ test.describe('Checkout', () => {
 
   test.describe('Pagamento e Confirmação', () => {
 
-    test.beforeEach(async ({ page, app }) => {
-      await page.goto('/')
-      await page.getByRole('link', { name: /Configure Agora/i }).click()
+    test.beforeEach(async ({ app }) => {
+
+      await app.hero.open()
 
       await app.configurator.selectColor('Glacier Blue')
       await app.configurator.selectWheels(/aero/i)
@@ -155,13 +155,7 @@ test.describe('Checkout', () => {
       await app.checkout.fillAndSubmit(customer, { expectTotal: customer.totalPrice })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-      await expect(page.getByRole('heading', { name: 'Pedido Aprovado!' })).toBeVisible({ timeout: 10000 })
-
-      const orderId = await page.getByTestId('order-id').textContent()
-      if (orderId) {
-        await deleteOrderByNumber(orderId)
-      }
+      await app.checkout.expectResult('Pedido Aprovado!')
     })
 
     test('deve criar um pedido em análise para financiamento com score médio', async ({ page, app }) => {
@@ -179,7 +173,7 @@ test.describe('Checkout', () => {
       await deleteOrderByEmail(customer.email)
 
       // Mock credit analysis to return score in [501, 700] range
-      await app.checkout.mockCreditScore(600)
+      await app.mock.creditAnalysis(600)
 
       // Act
       await app.checkout.fillAndSubmit(customer, {
@@ -188,8 +182,7 @@ test.describe('Checkout', () => {
       })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-      await expect(page.getByRole('heading', { name: 'Pedido em Análise!' })).toBeVisible({ timeout: 10000 })
+      await app.checkout.expectResult('Pedido em Análise!')
 
       const orderId = await page.getByTestId('order-id').textContent()
       expect(orderId).not.toBeNull()
@@ -237,7 +230,8 @@ test.describe('Checkout', () => {
       await deleteOrderByEmail(customer.email)
 
       // Mock credit analysis to return score <= 500
-      await app.checkout.mockCreditScore(500)
+      await app.mock.creditAnalysis(500)
+
 
       // Act
       await app.checkout.fillAndSubmit(customer, {
@@ -246,11 +240,7 @@ test.describe('Checkout', () => {
       })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-
-      await expect(
-        page.getByRole('heading', { name: 'Crédito Reprovado' })
-      ).toBeVisible({ timeout: 10000 })
+      await app.checkout.expectResult('Crédito Reprovado')
 
       const orderId = await page.getByTestId('order-id').textContent()
 
@@ -278,7 +268,7 @@ test.describe('Checkout', () => {
       await deleteOrderByEmail(customer.email)
 
       // Mock credit analysis to return score <= 500
-      await app.checkout.mockCreditScore(500)
+      await app.mock.creditAnalysis(500)
 
       // Act
       await app.checkout.fillAndSubmit(customer, {
@@ -287,11 +277,7 @@ test.describe('Checkout', () => {
       })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-
-      await expect(
-        page.getByRole('heading', { name: 'Crédito Reprovado' })
-      ).toBeVisible({ timeout: 10000 })
+      await app.checkout.expectResult('Crédito Reprovado')
 
       const orderId = await page.getByTestId('order-id').textContent()
 
@@ -319,7 +305,7 @@ test.describe('Checkout', () => {
       await deleteOrderByEmail(customer.email)
 
       // Mock credit analysis to return score <= 500
-      await app.checkout.mockCreditScore(450)
+      await app.mock.creditAnalysis(450)
 
       // Act
       await app.checkout.fillAndSubmit(customer, {
@@ -327,11 +313,7 @@ test.describe('Checkout', () => {
       })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-
-      await expect(
-        page.getByRole('heading', { name: 'Pedido Aprovado' })
-      ).toBeVisible({ timeout: 10000 })
+      await app.checkout.expectResult('Pedido Aprovado!')
 
       const orderId = await page.getByTestId('order-id').textContent()
 
@@ -341,6 +323,7 @@ test.describe('Checkout', () => {
         await deleteOrderByNumber(orderId)
       }
     })
+
 
     test('deve aprovar financiamento com score baixo e entrada maior que 50%', async ({ page, app }) => {
 
@@ -359,7 +342,7 @@ test.describe('Checkout', () => {
       await deleteOrderByEmail(customer.email)
 
       // Mock credit analysis to return score <= 500
-      await app.checkout.mockCreditScore(350)
+      await app.mock.creditAnalysis(350)
 
       // Act
       await app.checkout.fillAndSubmit(customer, {
@@ -367,11 +350,7 @@ test.describe('Checkout', () => {
       })
 
       // Assert
-      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
-
-      await expect(
-        page.getByRole('heading', { name: 'Pedido Aprovado' })
-      ).toBeVisible({ timeout: 10000 })
+      await app.checkout.expectResult('Pedido Aprovado!')
 
       const orderId = await page.getByTestId('order-id').textContent()
 

@@ -100,7 +100,11 @@ export function createCheckoutActions(page: Page) {
         await actions.acceptTerms()
       }
       await actions.submit()
-    }
+    },
+    async expectResult(status: string) {
+      await expect(page).toHaveURL(/\/success/, { timeout: 10000 })
+      await expect(page.getByRole('heading', { name: status })).toBeVisible({ timeout: 10000 })
+    },
   }
 
   return actions
