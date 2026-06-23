@@ -124,7 +124,13 @@ test.describe('Checkout', () => {
 
   test.describe('Pagamento e Confirmação', () => {
 
-    test.beforeEach(async ({ app }) => {
+    test.beforeEach(async ({ page, app }) => {
+      page.on('console', msg => {
+        console.log(`[BROWSER LOG] [${msg.type()}] ${msg.text()}`);
+      });
+      page.on('pageerror', err => {
+        console.error(`[BROWSER ERROR] ${err.message}`);
+      });
 
       await app.hero.open()
 
