@@ -96,7 +96,7 @@ jobs:
         run: yarn install
 
       - name: Install Playwright Browsers
-        run: yarn playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run E2E Regression Tests
         run: yarn playwright test
