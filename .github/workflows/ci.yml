@@ -11,6 +11,8 @@ on:
 
 env:
   NODE_VERSION: '24'
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  VERCEL_SCOPE: leocrdevhotmailcoms-projects
 
 jobs:
   unit-tests:
@@ -34,3 +36,30 @@ jobs:
 
       - name: Run unit tests
         run: yarn test
+
+  build-and-deploy:
+    name: Build & Deploy Vercel Preview
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: '24'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable Corepack (Yarn)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build Vercel
+        run: yarn vercel build --token=$VERCEL_TOKEN
+
+      - name: Deploy Vercel Preview
+        run: yarn vercel deploy --prebuilt --target:preview --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE

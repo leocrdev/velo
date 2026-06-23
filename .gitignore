@@ -38,3 +38,5 @@ supabase/.branches/
 supabase/snippets/
 playwright-report/
 test-results/
+.vercel
+.env*.local
