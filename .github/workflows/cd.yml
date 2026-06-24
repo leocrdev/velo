@@ -2,7 +2,7 @@
 # Este workflow roda os testes unitários a cada push na branch main para garantir a estabilidade do código.
 # Preparado para expansão futura de outros jobs e steps de validação.
 
-name: Continuous Integration
+name: Continuous Deployment
 
 on:
   push:
@@ -22,57 +22,74 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Faz checkout do código do repositório
       - name: Checkout repository
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v6.0.2
 
+      # 2. Configura o ambiente Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Enable Corepack (Yarn)
+      # 3. Habilita o Corepack para gerenciamento do Yarn
+      - name: Enable Corepack
         run: corepack enable
 
+      # 4. Instala as dependências do projeto
       - name: Install dependencies
         run: yarn install
 
+      # 5. Executa os testes unitários com Vitest
       - name: Run unit tests
         run: yarn test
-
-
+  
   build-and-deploy:
     name: Build & Deploy Vercel Preview
     needs: [unit-tests]
     runs-on: ubuntu-latest
     outputs:
       deployment-url: ${{ steps.deploy.outputs.deployment-url }}
-    env:
-      NODE_VERSION: '22'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7.0.0
 
+    steps:
+      # 1. Faz checkout do código do repositório
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      # 2. Configura o ambiente Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Enable Corepack (Yarn)
+      # 3. Habilita o Corepack para gerenciamento do Yarn
+      - name: Enable Corepack
         run: corepack enable
 
+      # 4. Instala as dependências do projeto
       - name: Install dependencies
         run: yarn install
 
+      # 5. Obter as configurações do vercel
       - name: Pull Vercel Config
-        run: yarn vercel pull --yes --environment=preview --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE
-
+        run: |
+          yarn vercel pull --yes \
+          --environment=preview \
+          --token=$VERCEL_TOKEN \
+          --scope=$VERCEL_SCOPE
+      
+      # 6. Build para o Vercel
       - name: Build Vercel
         run: yarn vercel build --token=$VERCEL_TOKEN
 
-      - name: Deploy Vercel Preview
+      # 7. Deploy preview no vercel
+      - name: Deploy preview
         id: deploy
         run: |
-          URL=$(yarn --silent vercel deploy --prebuilt --token=$VERCEL_TOKEN --scope=$VERCEL_SCOPE)
+          URL=$(yarn --silent vercel deploy --prebuilt \
+          --target=preview \
+          --token=$VERCEL_TOKEN \
+          --scope=$VERCEL_SCOPE)
           echo "deployment-url=$URL" >> $GITHUB_OUTPUT
 
   e2e-tests:
@@ -81,34 +98,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Faz checkout do código do repositório
       - name: Checkout repository
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v6.0.2
 
+      # 2. Configura o ambiente Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Enable Corepack (Yarn)
+      # 3. Habilita o Corepack para gerenciamento do Yarn
+      - name: Enable Corepack
         run: corepack enable
 
+      # 4. Instala as dependências do projeto
       - name: Install dependencies
         run: yarn install
 
-      - name: Install Playwright Browsers
+      # 5. Instalação do Chromium
+      - name: Install Plawright Browser
         run: yarn playwright install --with-deps chromium
-        env:
-          DEBUG: pw:install
 
+      # 6. Execução dos Testes de Regressão
       - name: Run E2E Regression Tests
         run: yarn playwright test
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
 
-      - name: Upload Playwright Report
+      # 7. Relatório de Testes Automatizados
+      - name: Upload Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.1
         with:
           name: playwright-report
           path: playwright-report
-        
+      
+      # 8. Publicar report JSON do TestDino
+      - name: Publish Testdino Report
+        if: ${{ !cancelled() }}
+        run: npx tdpw upload ./playwright-report --token=${{ secrets.TD_TOKEN }}
+
+  promote:
+    name: Promote to Production
+    needs: [build-and-deploy, e2e-tests]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Vercel promote
+        run: |
+          npx vercel@latest promote ${{ needs.build-and-deploy.outputs.deployment-url }} \
+          --token=$VERCEL_TOKEN \
+          --scope=$VERCEL_SCOPE \
+          --yes
