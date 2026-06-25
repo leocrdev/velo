@@ -1,13 +1,11 @@
 {
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ],
-    "git": {
-        "deploymentEnabled": {
-            "main": false
-        }
+  "rewrites": [
+    { "source": "/api/config", "destination": "/api/config" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": false
     }
+  }
 }

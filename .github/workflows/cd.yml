@@ -44,9 +44,41 @@ jobs:
       - name: Run unit tests
         run: yarn test
   
+  supabase-sync:
+    name: Sync Supabase (Migrations + Functions)
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Apply Migrations to Preview
+        run: supabase db push --db-url "${{ secrets.SUPABASE_PREVIEW_DB_URL }}"
+
+      - name: Deploy Functions to Preview
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PREVIEW_PROJECT_ID }}
+          supabase functions deploy credit-analysis --project-ref ${{ secrets.SUPABASE_PREVIEW_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Apply Migrations to Production
+        run: supabase db push --db-url "${{ secrets.SUPABASE_PRODUCTION_DB_URL }}"
+
+      - name: Deploy Functions to Production
+        run: |
+          supabase functions deploy credit-analysis --project-ref ${{ secrets.SUPABASE_PRODUCTION_PROJECT_ID }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
   build-and-deploy:
     name: Build & Deploy Vercel Preview
-    needs: [unit-tests]
+    needs: [unit-tests, supabase-sync]
     runs-on: ubuntu-latest
     outputs:
       deployment-url: ${{ steps.deploy.outputs.deployment-url }}
@@ -125,6 +157,7 @@ jobs:
         run: yarn playwright test
         env:
           BASE_URL: ${{ needs.build-and-deploy.outputs.deployment-url }}
+          DATABASE_URL: ${{ secrets.SUPABASE_PREVIEW_DATABASE_URL }}
 
       # 7. Relatório de Testes Automatizados
       - name: Upload Playwright report
